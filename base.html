@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}JobGuard{% endblock %} | AI Job Fraud Detector</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <a href="/home" class="sidebar-brand">
+                <span class="brand-icon">JG</span>
+                <span class="brand-name">JobGuard</span>
+            </a>
+            <nav class="sidebar-nav">
+                <a href="/home" class="nav-item {% if request.path == '/home' %}active{% endif %}">
+                    <span class="nav-icon">&#127968;</span>
+                    <span>Home</span>
+                </a>
+                <a href="/analysis" class="nav-item {% if request.path == '/analysis' %}active{% endif %}">
+                    <span class="nav-icon">&#128269;</span>
+                    <span>Analysis</span>
+                </a>
+                <a href="/examples" class="nav-item {% if request.path == '/examples' %}active{% endif %}">
+                    <span class="nav-icon">&#128196;</span>
+                    <span>Examples</span>
+                </a>
+                <a href="/tips" class="nav-item {% if request.path == '/tips' %}active{% endif %}">
+                    <span class="nav-icon">&#128161;</span>
+                    <span>Tips</span>
+                </a>
+                <a href="/visualization" class="nav-item {% if request.path == '/visualization' %}active{% endif %}">
+                    <span class="nav-icon">&#128202;</span>
+                    <span>Visualization</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="accuracy-badge">
+                    <span class="accuracy-value">{{ model_accuracy|default(98) }}%</span>
+                    <span class="accuracy-label">Accuracy</span>
+                </div>
+            </div>
+        </aside>
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

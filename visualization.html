@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Visualization{% endblock %}
+{% block content %}
+<div class="page-viz">
+    <header class="page-header">
+        <h1>Fake Job Posting Statistics</h1>
+        <p>Real-world data and trends about job fraud affecting society.</p>
+    </header>
+
+    <section class="stats-overview">
+        <div class="stat-card danger">
+            <h3>$2 Billion+</h3>
+            <p>Estimated annual losses from job scams (FBI IC3)</p>
+        </div>
+        <div class="stat-card">
+            <h3>~5%</h3>
+            <p>Of job postings on some platforms may be fraudulent</p>
+        </div>
+        <div class="stat-card">
+            <h3>14,000+</h3>
+            <p>Job scam complaints to FTC in 2023</p>
+        </div>
+    </section>
+
+    <section class="viz-section">
+        <h2>Common Red Flags in Fake Jobs</h2>
+        <div class="viz-chart">
+            <div class="bar-row">
+                <span class="bar-label">Payment/Deposit requests</span>
+                <div class="bar-track"><div class="bar-fill" style="--pct: 95%"></div></div>
+                <span class="bar-pct">95%</span>
+            </div>
+            <div class="bar-row">
+                <span class="bar-label">No experience required</span>
+                <div class="bar-track"><div class="bar-fill" style="--pct: 78%"></div></div>
+                <span class="bar-pct">78%</span>
+            </div>
+            <div class="bar-row">
+                <span class="bar-label">Generic email (Gmail/Yahoo)</span>
+                <div class="bar-track"><div class="bar-fill" style="--pct: 72%"></div></div>
+                <span class="bar-pct">72%</span>
+            </div>
+            <div class="bar-row">
+                <span class="bar-label">Immediate/Urgent hiring</span>
+                <div class="bar-track"><div class="bar-fill" style="--pct: 68%"></div></div>
+                <span class="bar-pct">68%</span>
+            </div>
+            <div class="bar-row">
+                <span class="bar-label">Wire transfer / PayPal</span>
+                <div class="bar-track"><div class="bar-fill" style="--pct: 61%"></div></div>
+                <span class="bar-pct">61%</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="viz-section">
+        <h2>Our Model Performance</h2>
+        <div class="algo-grid">
+            <div class="algo-box">
+                <span class="algo-name">LSTM</span>
+                <span class="algo-acc">~98%</span>
+                <p>Deep learning for sequence patterns</p>
+            </div>
+            <div class="algo-box">
+                <span class="algo-name">Logistic Regression</span>
+                <span class="algo-acc">~76%</span>
+                <p>TF-IDF + classic ML</p>
+            </div>
+            <div class="algo-box">
+                <span class="algo-name">Random Forest</span>
+                <span class="algo-acc">~70%</span>
+                <p>TF-IDF + ensemble trees</p>
+            </div>
+            <div class="algo-box highlight">
+                <span class="algo-name">Ensemble</span>
+                <span class="algo-acc">98%</span>
+                <p>Combined for best results</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="news-section">
+        <h2>Why This Matters</h2>
+        <ul class="news-list">
+            <li>Job scams often target recent graduates and career changers who are eager to find work.</li>
+            <li>Scammers impersonate real companies to gain trust.</li>
+            <li>Victims may lose money, personal data, or become involved in money laundering.</li>
+            <li>Always verify job postings before sharing sensitive information or making any payments.</li>
+        </ul>
+    </section>
+</div>
+{% endblock %}

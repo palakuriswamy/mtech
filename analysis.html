@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}Analysis{% endblock %}
+{% block content %}
+<div class="page-analysis">
+    <header class="page-header">
+        <h1>Job Post Analyzer</h1>
+        <p>Paste text, fetch from URL, or upload an image. Extracted text will appear below for you to review before analyzing.</p>
+    </header>
+
+    <div class="input-section">
+        <div class="input-tabs">
+            <button type="button" class="tab-btn active" data-tab="text">Paste Text</button>
+            <button type="button" class="tab-btn active" data-tab="url">From URL</button>
+            <button type="button" class="tab-btn {% if not ocr_available %}disabled{% endif %}" data-tab="image">From Image</button>
+        </div>
+
+        <div class="tab-panel active" id="panel-text">
+            <textarea id="combined_text" name="combined_text" placeholder="Paste job posting here (title, company, description, requirements, how to apply...)">{{ combined_text or '' }}</textarea>
+        </div>
+
+        <div class="tab-panel" id="panel-url">
+            <div class="url-row">
+                <input type="url" id="url_input" placeholder="https://example.com/job-posting" class="url-input">
+                <button type="button" class="btn-fetch" id="btn-fetch-url">Fetch & Show Text</button>
+            </div>
+            <p class="tab-hint">Paste URL, click Fetch to extract text into the box above, then click Analyze.</p>
+        </div>
+
+        <div class="tab-panel" id="panel-image">
+            <div class="image-upload-zone">
+                <input type="file" id="image_file" accept="image/*" class="file-input">
+                <label for="image_file" class="upload-label">
+                    <span class="upload-icon">&#128247;</span>
+                    <span>Click to upload image</span>
+                    <span class="upload-hint">PNG, JPG (max 10MB)</span>
+                </label>
+            </div>
+            <p class="tab-hint">Upload screenshot of job posting. Click Extract to get text into the box, then Analyze.</p>
+        </div>
+
+        <form action="/analysis" method="post" id="analyzer-form">
+            <input type="hidden" name="combined_text" id="form_combined_text">
+            <button type="submit" class="btn-primary btn-analyze">Analyze Post</button>
+        </form>
+    </div>
+
+    {% if error %}
+    <div class="error-message">{{ error }}</div>
+    {% endif %}
+
+    {% if show_result %}
+    <section class="result-area">
+        <div class="result-hero {% if is_fraud %}result-fraud{% else %}result-legit{% endif %}">
+            <div class="confidence-ring">
+                <svg viewBox="0 0 120 120">
+                    <circle class="ring-bg" cx="60" cy="60" r="54"/>
+                    <circle class="ring-fill" cx="60" cy="60" r="54" style="--pct: {{ confidence_pct }}"/>
+                </svg>
+                <span class="confidence-value">{{ confidence_pct }}%</span>
+            </div>
+            <div class="result-summary">
+                <h2>{{ prediction }}</h2>
+                <span class="result-badge {% if is_fraud %}badge-fraud{% else %}badge-legit{% endif %}">
+                    {% if is_fraud %}Likely Fraudulent{% else %}Likely Legitimate{% endif %}
+                </span>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h3>Algorithm Scores</h3>
+            <div class="chart-bars">
+                <div class="chart-bar">
+                    <span class="bar-label">LSTM</span>
+                    <div class="bar-track"><div class="bar-fill" style="--pct: {{ results.lstm.pct }}%; --color: var(--cyan)"></div></div>
+                    <span class="bar-value">{{ results.lstm.pct }}%</span>
+                </div>
+                {% if results.logistic %}
+                <div class="chart-bar">
+                    <span class="bar-label">Logistic</span>
+                    <div class="bar-track"><div class="bar-fill" style="--pct: {{ results.logistic.pct }}%; --color: var(--violet)"></div></div>
+                    <span class="bar-value">{{ results.logistic.pct }}%</span>
+                </div>
+                <div class="chart-bar">
+                    <span class="bar-label">Random Forest</span>
+                    <div class="bar-track"><div class="bar-fill" style="--pct: {{ results.random_forest.pct }}%; --color: var(--amber)"></div></div>
+                    <span class="bar-value">{{ results.random_forest.pct }}%</span>
+                </div>
+                {% endif %}
+                <div class="chart-bar">
+                    <span class="bar-label">Rule-Based</span>
+                    <div class="bar-track"><div class="bar-fill" style="--pct: {{ results.rule_based.pct }}%; --color: var(--rose)"></div></div>
+                    <span class="bar-value">{{ results.rule_based.pct }}%</span>
+                </div>
+                <div class="chart-bar highlight">
+                    <span class="bar-label">Ensemble</span>
+                    <div class="bar-track"><div class="bar-fill" style="--pct: {{ results.ensemble.pct }}%; --color: var(--emerald)"></div></div>
+                    <span class="bar-value">{{ results.ensemble.pct }}%</span>
+                </div>
+            </div>
+        </div>
+
+        {% if reasons %}
+        <div class="section-card">
+            <h3>{% if is_fraud %}Why Fraudulent{% else %}Why Legitimate{% endif %}</h3>
+            <ul class="reasons-list">
+                {% for r in reasons %}
+                <li class="reason-item reason-{{ r.type }}">
+                    <span class="reason-text">{{ r.text }}</span>
+                    {% if r.subitems %}
+                    <ul class="reason-sublist">
+                        {% for item in r.subitems %}<li>{{ item }}</li>{% endfor %}
+                    </ul>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+</div>
+
+<script>
+(function() {
+    const textarea = document.getElementById('combined_text');
+    const formCombined = document.getElementById('form_combined_text');
+    const analyzerForm = document.getElementById('analyzer-form');
+
+    analyzerForm.addEventListener('submit', function(e) {
+        formCombined.value = textarea.value;
+        if (!formCombined.value.trim()) {
+            e.preventDefault();
+            alert('Please add job posting text first.');
+        }
+    });
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (this.classList.contains('disabled')) return;
+            const tab = this.dataset.tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById('panel-' + tab).classList.add('active');
+        });
+    });
+
+    // Fetch URL
+    document.getElementById('btn-fetch-url').addEventListener('click', async function() {
+        const url = document.getElementById('url_input').value.trim();
+        if (!url) { alert('Enter a URL first.'); return; }
+        this.disabled = true;
+        this.textContent = 'Fetching...';
+        try {
+            const res = await fetch('/api/fetch-url', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({url: url})
+            });
+            const data = await res.json();
+            if (data.ok) {
+                textarea.value = data.text;
+                document.querySelector('.tab-btn[data-tab="text"]').click();
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+        this.disabled = false;
+        this.textContent = 'Fetch & Show Text';
+    });
+
+    // Extract from image
+    document.getElementById('image_file').addEventListener('change', async function() {
+        const f = this.files[0];
+        if (!f) return;
+        const fd = new FormData();
+        fd.append('image', f);
+        const zone = this.closest('.image-upload-zone');
+        zone.classList.add('loading');
+        try {
+            const res = await fetch('/api/extract-image', {method: 'POST', body: fd});
+            const data = await res.json();
+            if (data.ok) {
+                textarea.value = data.text;
+                document.querySelector('.tab-btn[data-tab="text"]').click();
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+        zone.classList.remove('loading');
+    });
+})();
+</script>
+{% endblock %}

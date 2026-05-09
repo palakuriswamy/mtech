@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Examples{% endblock %}
+{% block content %}
+<div class="page-examples">
+    <header class="page-header">
+        <h1>Example Job Postings</h1>
+        <p>Try these examples in the Analyzer. Copy and paste into the Analysis page.</p>
+    </header>
+
+    <div class="examples-grid">
+        <div class="example-card legit">
+            <h3>Legitimate Example</h3>
+            <textarea id="legit-job" readonly>Title: Software Engineer
+Company: Goldman Sachs
+Location: Bengaluru, India
+Description: Develop scalable software, architect low-latency infrastructure, and leverage machine learning. We are looking for passionate engineers.
+Requirements:
+- Bachelor's in Computer Science or related field
+- Strong fundamentals in distributed systems and databases
+- Proficiency in algorithm design and analysis
+- 3+ years of experience
+Benefits: Health insurance, 401k, stock options
+How to Apply: Visit careers.goldmansachs.com</textarea>
+            <form action="/analysis" method="post" class="example-form">
+                <input type="hidden" name="combined_text" id="legit-text" value="">
+                <button type="submit" class="btn-copy">Copy & Analyze</button>
+            </form>
+        </div>
+        <div class="example-card fraud">
+            <h3>Fraudulent Example</h3>
+            <textarea id="fraud-job" readonly>Title: Junior Developer - Immediate Hiring
+Company: Future AI Solutions
+Location: Remote
+Description: Seeking enthusiastic developers for AI projects. No experience needed. Work from home!
+Requirements:
+- No experience required; basic Python preferred
+- Must have laptop with internet
+How to Apply: careers@futureaisolutions.com. A refundable ₹4,999 deposit is required for training materials. Apply via WhatsApp for fast processing.</textarea>
+            <form action="/analysis" method="post" class="example-form">
+                <input type="hidden" name="combined_text" id="fraud-text" value="">
+                <button type="submit" class="btn-copy">Copy & Analyze</button>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+document.querySelectorAll('.example-form').forEach(form => {
+    const ta = form.closest('.example-card').querySelector('textarea');
+    const input = form.querySelector('input[name="combined_text"]');
+    form.addEventListener('submit', function() {
+        input.value = ta.value;
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobGuard | AI Job Fraud Detector</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app full-page">
+        <header class="top-header">
+            <div class="header-inner">
+                <div class="brand">
+                    <span class="brand-icon">JG</span>
+                    <span class="brand-name">JobGuard</span>
+                </div>
+                <div class="header-badge">
+                    <span class="badge-value">{{ model_accuracy|default(98) }}%</span>
+                    <span class="badge-label">Accuracy</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="main full-width">
+            <div class="hero-section">
+                <h1>Job Post Fraud Detector</h1>
+                <p>Analyze job postings via text, URL, or image. Our AI uses LSTM, Logistic Regression, Random Forest & rule-based checks.</p>
+            </div>
+
+            <form action="/predict" method="post" enctype="multipart/form-data" class="analyzer-form" id="analyzer-form">
+                <div class="input-tabs">
+                    <button type="button" class="tab-btn active" data-tab="text">Paste Text</button>
+                    <button type="button" class="tab-btn {% if not url_fetch_available %}disabled{% endif %}" data-tab="url" title="{% if not url_fetch_available %}Install requests & beautifulsoup4{% endif %}">From URL</button>
+                    <button type="button" class="tab-btn {% if not ocr_available %}disabled{% endif %}" data-tab="image" title="{% if not ocr_available %}Install pytesseract, Pillow & Tesseract OCR{% endif %}">From Image</button>
+                </div>
+
+                <div class="tab-panel active" id="panel-text">
+                    <textarea name="combined_text" id="combined_text" placeholder="Paste job posting here (title, company, description, requirements, how to apply...)" rows="8">{{ combined_text or (request.form.combined_text if request.form else '') }}</textarea>
+                </div>
+
+                <div class="tab-panel" id="panel-url">
+                    <input type="url" name="url_input" id="url_input" placeholder="https://example.com/job-posting" class="url-input">
+                    <p class="tab-hint">Paste the URL of a job posting. We'll fetch and analyze the page content.</p>
+                </div>
+
+                <div class="tab-panel" id="panel-image">
+                    <div class="image-upload-zone">
+                        <input type="file" name="image_file" id="image_file" accept="image/*" class="file-input">
+                        <label for="image_file" class="upload-label">
+                            <span class="upload-icon">📷</span>
+                            <span>Click to upload or drag image</span>
+                            <span class="upload-hint">PNG, JPG, JPEG (max 10MB)</span>
+                        </label>
+                    </div>
+                    <p class="tab-hint">Upload a screenshot or photo of a job posting. We'll extract text and analyze it.</p>
+                </div>
+
+                <button type="submit" class="btn-primary">Analyze Post</button>
+            </form>
+
+            {% if source and (source == 'url' or source == 'image') and combined_text %}
+            <div class="source-badge">
+                {% if source == 'url' %}✓ Fetched from URL{% else %}✓ Extracted from image{% endif %} — You can edit the text above and re-analyze
+            </div>
+            {% endif %}
+
+            {% if show_result %}
+            <section class="result-area">
+                <div class="result-hero {% if is_fraud %}result-fraud{% else %}result-legit{% endif %}">
+                    <div class="result-visual">
+                        <div class="confidence-ring" data-value="{{ confidence_pct }}">
+                            <svg viewBox="0 0 120 120">
+                                <circle class="ring-bg" cx="60" cy="60" r="54"/>
+                                <circle class="ring-fill" cx="60" cy="60" r="54" style="--pct: {{ confidence_pct }}"/>
+                            </svg>
+                            <span class="confidence-value">{{ confidence_pct }}%</span>
+                        </div>
+                    </div>
+                    <div class="result-summary">
+                        <h2 class="result-title">{{ prediction }}</h2>
+                        <span class="result-badge {% if is_fraud %}badge-fraud{% else %}badge-legit{% endif %}">
+                            {% if is_fraud %}⚠ Likely Fraudulent{% else %}✓ Likely Legitimate{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <h3>Algorithm Scores</h3>
+                    <div class="chart-bars">
+                        <div class="chart-bar">
+                            <span class="bar-label">LSTM</span>
+                            <div class="bar-track"><div class="bar-fill" style="--pct: {{ results.lstm.pct }}%; --color: var(--cyan)"></div></div>
+                            <span class="bar-value">{{ results.lstm.pct }}%</span>
+                        </div>
+                        {% if results.logistic %}
+                        <div class="chart-bar">
+                            <span class="bar-label">Logistic</span>
+                            <div class="bar-track"><div class="bar-fill" style="--pct: {{ results.logistic.pct }}%; --color: var(--violet)"></div></div>
+                            <span class="bar-value">{{ results.logistic.pct }}%</span>
+                        </div>
+                        <div class="chart-bar">
+                            <span class="bar-label">Random Forest</span>
+                            <div class="bar-track"><div class="bar-fill" style="--pct: {{ results.random_forest.pct }}%; --color: var(--amber)"></div></div>
+                            <span class="bar-value">{{ results.random_forest.pct }}%</span>
+                        </div>
+                        {% endif %}
+                        <div class="chart-bar">
+                            <span class="bar-label">Rule-Based</span>
+                            <div class="bar-track"><div class="bar-fill" style="--pct: {{ results.rule_based.pct }}%; --color: var(--rose)"></div></div>
+                            <span class="bar-value">{{ results.rule_based.pct }}%</span>
+                        </div>
+                        <div class="chart-bar highlight">
+                            <span class="bar-label">Ensemble</span>
+                            <div class="bar-track"><div class="bar-fill" style="--pct: {{ results.ensemble.pct }}%; --color: var(--emerald)"></div></div>
+                            <span class="bar-value">{{ results.ensemble.pct }}%</span>
+                        </div>
+                    </div>
+                </div>
+
+                {% if reasons %}
+                <div class="section-card why-section">
+                    <h3>{% if is_fraud %}Why This May Be Fraudulent{% else %}Why This Looks Legitimate{% endif %}</h3>
+                    <ul class="reasons-list">
+                        {% for r in reasons %}
+                        <li class="reason-item reason-{{ r.type }}">
+                            <span class="reason-icon">{% if r.type == 'warning' %}⚠{% elif r.type == 'positive' %}✓{% else %}●{% endif %}</span>
+                            <div>
+                                <span class="reason-text">{{ r.text }}</span>
+                                {% if r.subitems %}
+                                <ul class="reason-sublist">
+                                    {% for item in r.subitems %}<li>{{ item }}</li>{% endfor %}
+                                </ul>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <div class="section-card advice-card {% if is_fraud %}advice-fraud{% else %}advice-legit{% endif %}">
+                    <h3>{% if is_fraud %}What To Do Next{% else %}Next Steps{% endif %}</h3>
+                    {% if is_fraud %}
+                    <ul class="advice-list">
+                        <li>Do not send money, deposits, or purchase equipment.</li>
+                        <li>Verify the company exists via LinkedIn, Google, or official website.</li>
+                        <li>Be suspicious of generic emails (Gmail, Yahoo) vs company domains.</li>
+                        <li>Legitimate jobs rarely require upfront fees for "training" or "materials."</li>
+                    </ul>
+                    {% else %}
+                    <ul class="advice-list">
+                        <li>Still verify the company and job on their official careers page.</li>
+                        <li>Apply through the company's official portal when possible.</li>
+                        <li>Watch for unexpected payment requests during the process.</li>
+                    </ul>
+                    {% endif %}
+                </div>
+            </section>
+            {% endif %}
+
+            {% if not show_result and prediction %}
+            <div class="error-message">
+                <p>{{ prediction }}</p>
+            </div>
+            {% endif %}
+
+            <div class="expandable-sections">
+                <button type="button" class="expand-trigger" data-target="tips-panel">
+                    <span class="trigger-icon">💡</span>
+                    <span>Job Search Safety Tips</span>
+                    <span class="trigger-arrow">▼</span>
+                </button>
+                <div id="tips-panel" class="expand-panel">
+                    <div class="tips-grid">
+                        <div class="tip-item">
+                            <span class="tip-num">1</span>
+                            <p><strong>Verify the company</strong> — Search the company name and check for a real website, LinkedIn, and reviews.</p>
+                        </div>
+                        <div class="tip-item">
+                            <span class="tip-num">2</span>
+                            <p><strong>Never pay to apply</strong> — Legitimate employers do not charge application fees, training fees, or equipment deposits.</p>
+                        </div>
+                        <div class="tip-item">
+                            <span class="tip-num">3</span>
+                            <p><strong>Check the contact</strong> — Company emails usually use their domain (e.g. @company.com), not Gmail or Yahoo.</p>
+                        </div>
+                        <div class="tip-item">
+                            <span class="tip-num">4</span>
+                            <p><strong>Too good to be true?</strong> — High pay + no experience + work from home + immediate start = red flags.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="expand-trigger" data-target="examples-panel">
+                    <span class="trigger-icon">📋</span>
+                    <span>Try Examples</span>
+                    <span class="trigger-arrow">▼</span>
+                </button>
+                <div id="examples-panel" class="expand-panel">
+                    <div class="examples-grid">
+                        <div class="example-card legit">
+                            <h4>Legitimate</h4>
+                            <textarea id="legit-job" readonly>Title: Software Engineer
+Company: Goldman Sachs
+Location: Bengaluru, India
+Description: Develop scalable software, architect low-latency infrastructure. Requirements: Bachelor's in CS, strong fundamentals in distributed systems. How to Apply: careers.goldmansachs.com</textarea>
+                            <button type="button" class="btn-copy" data-target="legit-job">Copy</button>
+                        </div>
+                        <div class="example-card fraud">
+                            <h4>Fraudulent</h4>
+                            <textarea id="fraud-job" readonly>Title: Junior Developer - Immediate Hiring
+Company: Future AI Solutions
+Location: Remote
+Description: No experience needed. How to Apply: careers@futureaisolutions.com. A refundable ₹4,999 deposit is required for training materials.</textarea>
+                            <button type="button" class="btn-copy" data-target="fraud-job">Copy</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        // If we have extracted/fetched content, show text tab
+        {% if combined_text and (source == 'url' or source == 'image') %}
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelector('.tab-btn[data-tab="text"]').classList.add('active');
+            document.getElementById('panel-text').classList.add('active');
+            document.getElementById('combined_text').required = true;
+        });
+        {% endif %}
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.classList.contains('disabled')) return;
+                const tab = btn.dataset.tab;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('panel-' + tab).classList.add('active');
+                document.getElementById('combined_text').required = (tab === 'text');
+                document.getElementById('url_input').required = (tab === 'url');
+                document.getElementById('image_file').required = (tab === 'image');
+            });
+        });
+
+        // Expandable Tips & Examples
+        document.querySelectorAll('.expand-trigger').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const panel = document.getElementById(btn.dataset.target);
+                const isOpen = panel.classList.contains('open');
+                document.querySelectorAll('.expand-panel').forEach(p => p.classList.remove('open'));
+                document.querySelectorAll('.expand-trigger').forEach(b => b.classList.remove('open'));
+                if (!isOpen) {
+                    panel.classList.add('open');
+                    btn.classList.add('open');
+                }
+            });
+        });
+
+        document.querySelectorAll('.btn-copy').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-target');
+                const ta = document.getElementById(id);
+                ta.select();
+                navigator.clipboard.writeText(ta.value);
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy', 2000);
+            });
+        });
+    </script>
+</body>
+</html>

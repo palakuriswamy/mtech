@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="page-home">
+    <header class="page-header">
+        <h1>Protect Yourself from Fake Job Postings</h1>
+        <p>JobGuard uses AI to detect fraudulent job listings and help job seekers avoid scams.</p>
+    </header>
+
+    <section class="info-cards">
+        <div class="info-card">
+            <div class="info-icon">&#9888;</div>
+            <h3>Fake Jobs Are Rising</h3>
+            <p>According to the FBI, job scams cost victims over $2 billion annually. Fake job postings are one of the fastest-growing online fraud types, targeting job seekers with fake opportunities.</p>
+        </div>
+        <div class="info-card">
+            <div class="info-icon">&#128200;</div>
+            <h3>How It Works</h3>
+            <p>Our system uses multiple AI models (LSTM, Logistic Regression, Random Forest) plus rule-based checks to analyze job post text. Paste text, paste a URL, or upload an image of a job posting to get an instant fraud risk assessment.</p>
+        </div>
+        <div class="info-card">
+            <div class="info-icon">&#128274;</div>
+            <h3>What We Detect</h3>
+            <p>Red flags like payment requests, wire transfers, "no experience needed" + urgent hiring, training fees, generic email contacts, and patterns typical of job scams.</p>
+        </div>
+    </section>
+
+    <section class="how-it-works">
+        <h2>How It Works</h2>
+        <div class="steps">
+            <div class="step">
+                <span class="step-num">1</span>
+                <h4>Add Job Content</h4>
+                <p>Paste job text, enter a URL to fetch the page, or upload an image of the posting.</p>
+            </div>
+            <div class="step">
+                <span class="step-num">2</span>
+                <h4>AI Analysis</h4>
+                <p>Our models analyze the text for fraud patterns and red flags.</p>
+            </div>
+            <div class="step">
+                <span class="step-num">3</span>
+                <h4>Get Results</h4>
+                <p>See a risk score, confidence level, and detailed reasons for the verdict.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-bar">
+        <div class="stat">
+            <span class="stat-value">98%</span>
+            <span class="stat-label">Model Accuracy</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">4</span>
+            <span class="stat-label">AI Algorithms</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">25+</span>
+            <span class="stat-label">Fraud Indicators</span>
+        </div>
+    </section>
+
+    <div class="cta-block">
+        <a href="/analysis" class="btn-primary">Start Analysis</a>
+    </div>
+</div>
+{% endblock %}
