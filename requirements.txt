@@ -1,0 +1,10 @@
+Flask>=2.3.0
+tensorflow>=2.10.0
+scikit-learn>=1.2.0
+numpy>=1.24.0
+pandas>=2.0.0
+requests>=2.28.0
+beautifulsoup4>=4.11.0
+Pillow>=9.0.0
+pytesseract>=0.3.10
+# Optional for OCR if Tesseract not installed: pip install easyocr
